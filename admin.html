@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Товары — CRUD</title>
+  <style>
+    :root {
+      --bg: #f0f4fb;
+      --card: #fff;
+      --accent: #1f7aec;
+      --text: #1f2937;
+      --danger: #dc2626;
+      --border: #e5e7eb;
+      --shadow: 0 10px 24px rgba(17, 24, 39, 0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, #eef3ff, var(--bg));
+      padding: 24px 16px 48px;
+    }
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.75rem;
+    }
+    .hint {
+      margin: 0 0 20px;
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+    .hint code { background: #e8edf5; padding: 2px 6px; border-radius: 4px; }
+    .panel {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 20px 22px;
+      margin-bottom: 20px;
+    }
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="url"],
+    textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      min-width: 200px;
+      font-family: inherit;
+    }
+    textarea { min-height: 72px; resize: vertical; width: 100%; max-width: 520px; }
+    label.full-row { flex: 1 1 100%; max-width: 100%; }
+    .thumb-cell img { display: block; border-radius: 8px; object-fit: cover; }
+    input:focus {
+      outline: 2px solid rgba(31, 122, 236, 0.35);
+      border-color: var(--accent);
+    }
+    button {
+      cursor: pointer;
+      font-size: 0.95rem;
+      border-radius: 10px;
+      border: none;
+      padding: 10px 16px;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn-ghost {
+      background: #f3f4f6;
+      color: var(--text);
+    }
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-danger:hover { filter: brightness(1.08); }
+    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: #6b7280;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tr:hover td { background: #fafbff; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .actions { white-space: nowrap; }
+    .actions button + button { margin-left: 8px; }
+    .msg {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .msg.visible { display: block; }
+    .msg.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .msg.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .nav { margin-bottom: 16px; }
+    .nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .nav a:hover { text-decoration: underline; }
+    .api-banner {
+      display: none;
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+      font-size: 0.95rem;
+    }
+    .api-banner.visible { display: block; }
+    @media (max-width: 640px) {
+      .form-row { flex-direction: column; align-items: stretch; }
+      input[type="text"], input[type="number"], input[type="url"], textarea { min-width: 0; width: 100%; max-width: none; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      tr { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+      td { border: none; border-bottom: 1px solid var(--border); }
+      td:last-child { border-bottom: none; }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav"><a href="index.html">← К карточке товара</a></nav>
+    <h1>Каталог товаров</h1>
+    <div id="api-banner" class="api-banner" role="alert"></div>
+    <p class="hint">
+      Вариант 1 — всё с Express: <code>http://localhost:3000/admin.html</code><br>
+      Вариант 2 — HTML в Live Server (:5500): запустите API (<code>start.bat</code> или
+      <code>node server.js</code> на порту <strong>3000</strong>). Адрес API в консоли:
+      <code id="api-url-hint"></code><br>
+      Если Live Server открыт по <strong>https://</strong>, браузер может блокировать запросы к
+      <code>http://…:3000</code> — откройте страницу по <strong>http://</strong> или только через вариант 1.
+    </p>
+
+    <div class="panel">
+      <h2>Добавить товар</h2>
+      <form id="add-form" class="form-row">
+        <label>
+          Название
+          <input type="text" id="add-name" name="name" required placeholder="Например, Кепка">
+        </label>
+        <label>
+          Стоимость (₽)
+          <input type="number" id="add-cost" name="cost" min="0" step="1" required placeholder="990">
+        </label>
+        <label class="full-row">
+          URL фотографии товара
+          <input type="url" id="add-image" name="image" placeholder="https://… (картинка из интернета)">
+        </label>
+        <label class="full-row">
+          Описание (показывается в карточке на главной)
+          <textarea id="add-description" name="description" placeholder="Краткое описание для витрины"></textarea>
+        </label>
+        <button type="submit" class="btn-primary">Добавить</button>
+      </form>
+      <div id="msg" class="msg" role="status"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Список</h2>
+      <div id="table-wrap">
+        <p>Загрузка…</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Live Server не имеет API. Express на порту 3000 — всегда HTTP (не подставлять location.protocol, иначе https://…:3000 ломает запросы и при HTTPS-странице — mixed content).
+    const LIVE_PORTS = ["5500", "5501"];
+    const isLiveServer = LIVE_PORTS.includes(location.port);
+    const apiOrigin = isLiveServer ? `http://${location.hostname}:3000` : "";
+    const API = `${apiOrigin}/api/products`;
+    const DEFAULT_IMG =
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80";
+    let productsCache = [];
+    const msgEl = document.getElementById("msg");
+    const tableWrap = document.getElementById("table-wrap");
+    const apiBanner = document.getElementById("api-banner");
+    const apiUrlHint = document.getElementById("api-url-hint");
+    if (apiUrlHint) apiUrlHint.textContent = API;
+
+    if (isLiveServer && location.protocol === "https:") {
+      apiBanner.className = "api-banner visible";
+      apiBanner.innerHTML =
+        "Страница открыта по <strong>HTTPS</strong>. Запросы к API на <code>http://" +
+        location.hostname +
+        ":3000</code> браузер часто <strong>блокирует</strong>. Откройте этот же адрес Live Server с <strong>http://</strong> или используйте <code>http://localhost:3000/admin.html</code>.";
+    }
+
+    function networkErrMessage() {
+      return (
+        "Нет соединения с API. Убедитесь, что сервер запущен: в папке проекта выполните «start.bat» или «node server.js», в консоли должно быть «API: http://…:3000». Проверьте в браузере: " +
+        apiOrigin +
+        "/api/products"
+      );
+    }
+
+    async function fetchJson(url, options) {
+      let res;
+      try {
+        res = await fetch(url, options);
+      } catch (e) {
+        const err = new Error(networkErrMessage());
+        err.cause = e;
+        throw err;
+      }
+      return res;
+    }
+
+    function showMsg(text, ok) {
+      msgEl.textContent = text;
+      msgEl.className = "msg visible " + (ok ? "ok" : "err");
+    }
+    function hideMsg() {
+      msgEl.className = "msg";
+      msgEl.textContent = "";
+    }
+
+    async function loadProducts() {
+      hideMsg();
+      let res;
+      try {
+        res = await fetchJson(API);
+      } catch (e) {
+        productsCache = [];
+        tableWrap.innerHTML = "<p><strong>Сервер API не отвечает.</strong></p>";
+        showMsg(e.message || networkErrMessage(), false);
+        if (!apiBanner.textContent) {
+          apiBanner.className = "api-banner visible";
+          apiBanner.textContent =
+            "Не удалось подключиться к " + API + ". Запустите Express (start.bat) и обновите страницу.";
+        }
+        return;
+      }
+      if (!res.ok) {
+        tableWrap.innerHTML = "<p>Ошибка загрузки списка.</p>";
+        return;
+      }
+      const list = await res.json();
+      productsCache = list;
+      if (list.length === 0) {
+        tableWrap.innerHTML = "<p>Пока нет товаров — добавьте первый выше.</p>";
+        return;
+      }
+      tableWrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Фото</th>
+              <th>Название</th>
+              <th class="num">Стоимость</th>
+              <th>Описание</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map((p) => rowHtml(p)).join("")}
+          </tbody>
+        </table>`;
+      bindRowEvents();
+    }
+
+    function rowHtml(p) {
+      const desc = typeof p.description === "string" ? p.description : "";
+      const short =
+        desc.length > 60 ? `${escapeHtml(desc.slice(0, 60))}…` : escapeHtml(desc) || "—";
+      const src = p.image && String(p.image).trim() ? p.image.trim() : DEFAULT_IMG;
+      return `
+        <tr data-id="${p.id}">
+          <td data-label="ID">${p.id}</td>
+          <td class="thumb-cell" data-label="Фото">
+            <img src="${escapeHtmlAttr(src)}" alt="" width="48" height="48" loading="lazy">
+          </td>
+          <td class="cell-name" data-label="Название">${escapeHtml(p.name)}</td>
+          <td class="cell-cost num" data-label="Стоимость">${p.cost.toLocaleString("ru-RU")} ₽</td>
+          <td class="cell-desc" data-label="Описание">${short}</td>
+          <td class="actions" data-label="">
+            <button type="button" class="btn-ghost btn-sm btn-edit" data-id="${p.id}">Изменить</button>
+            <button type="button" class="btn-danger btn-sm btn-del" data-id="${p.id}">Удалить</button>
+          </td>
+        </tr>`;
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function escapeHtmlAttr(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;");
+    }
+
+    function bindRowEvents() {
+      tableWrap.querySelectorAll(".btn-del").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = Number(btn.dataset.id);
+          if (!confirm("Удалить товар #" + id + "?")) return;
+          let res;
+          try {
+            res = await fetchJson(API + "/" + id, { method: "DELETE" });
+          } catch (e) {
+            showMsg(e.message, false);
+            return;
+          }
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            showMsg(j.error || "Не удалось удалить", false);
+            return;
+          }
+          showMsg("Товар удалён", true);
+          loadProducts();
+        });
+      });
+
+      tableWrap.querySelectorAll(".btn-edit").forEach((btn) => {
+        btn.addEventListener("click", () => startEdit(Number(btn.dataset.id)));
+      });
+    }
+
+    let editingId = null;
+
+    function startEdit(id) {
+      if (editingId !== null) return;
+      const p = productsCache.find((x) => x.id === id);
+      if (!p) return;
+      const tr = tableWrap.querySelector(`tr[data-id="${id}"]`);
+      if (!tr) return;
+      editingId = id;
+      tr.innerHTML = `
+        <td data-label="ID">${p.id}</td>
+        <td data-label="Фото">
+          <input type="url" class="edit-image" value="${escapeHtmlAttr(p.image || "")}" placeholder="https://…" style="min-width:140px;max-width:220px;width:100%">
+        </td>
+        <td data-label="Название"><input type="text" class="edit-name" value="${escapeHtmlAttr(p.name)}"></td>
+        <td data-label="Стоимость"><input type="number" class="edit-cost" min="0" step="1" value="${p.cost}"></td>
+        <td data-label="Описание"><textarea class="edit-desc" rows="3">${escapeHtml(typeof p.description === "string" ? p.description : "")}</textarea></td>
+        <td class="actions" data-label="">
+          <button type="button" class="btn-primary btn-sm btn-save">Сохранить</button>
+          <button type="button" class="btn-ghost btn-sm btn-cancel">Отмена</button>
+        </td>`;
+      tr.querySelector(".btn-save").addEventListener("click", () => saveEdit(id));
+      tr.querySelector(".btn-cancel").addEventListener("click", () => {
+        editingId = null;
+        loadProducts();
+      });
+    }
+
+    async function saveEdit(id) {
+      const tr = tableWrap.querySelector(`tr[data-id="${id}"]`);
+      const nameIn = tr.querySelector(".edit-name");
+      const costIn = tr.querySelector(".edit-cost");
+      const imgIn = tr.querySelector(".edit-image");
+      const descIn = tr.querySelector(".edit-desc");
+      const body = {
+        name: nameIn.value.trim(),
+        cost: Number(costIn.value),
+        image: imgIn.value.trim(),
+        description: descIn.value.trim(),
+      };
+      let res;
+      try {
+        res = await fetchJson(API + "/" + id, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (e) {
+        showMsg(e.message, false);
+        return;
+      }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        showMsg(j.error || "Ошибка сохранения", false);
+        return;
+      }
+      editingId = null;
+      showMsg("Товар обновлён", true);
+      loadProducts();
+    }
+
+    document.getElementById("add-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideMsg();
+      const name = document.getElementById("add-name").value.trim();
+      const cost = Number(document.getElementById("add-cost").value);
+      const image = document.getElementById("add-image").value.trim();
+      const description = document.getElementById("add-description").value.trim();
+      let res;
+      try {
+        res = await fetchJson(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, cost, image, description }),
+        });
+      } catch (e) {
+        showMsg(e.message, false);
+        return;
+      }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        showMsg(j.error || "Не удалось добавить", false);
+        return;
+      }
+      document.getElementById("add-form").reset();
+      showMsg("Товар добавлен", true);
+      loadProducts();
+    });
+
+    loadProducts();
+  </script>
+</body>
+</html>

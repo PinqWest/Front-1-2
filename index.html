@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="output.css">
+    <title>Каталог товаров</title>
+</head>
+<body>
+    <nav style="max-width:920px;margin:0 auto 12px;font-family:Arial,sans-serif;">
+        <a href="admin.html" style="color:#1f7aec;font-weight:600;text-decoration:none;">Управление товарами (CRUD) →</a>
+    </nav>
+    <main class="container catalog" id="catalog">
+        <p>Загрузка каталога…</p>
+    </main>
+    <script>
+(function () {
+  const PLACEHOLDER_IMG =
+    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80";
+  const LIVE_PORTS = ["5500", "5501"];
+  const apiOrigin = LIVE_PORTS.includes(location.port)
+    ? "http://" + location.hostname + ":3000"
+    : "";
+  const API = apiOrigin + "/api/products";
+
+  function escapeHtml(s) {
+    var d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  }
+
+  function loadCatalog() {
+    var el = document.getElementById("catalog");
+    fetch(API)
+      .then(function (res) {
+        if (!res.ok) throw new Error("Ошибка " + res.status);
+        return res.json();
+      })
+      .then(function (list) {
+        if (!list.length) {
+          el.innerHTML =
+            "<p>Товаров пока нет. Добавьте их в <a href=\"admin.html\">админке</a> и обновите страницу.</p>";
+          return;
+        }
+        el.innerHTML = list
+          .map(function (p) {
+            var img = (p.image && String(p.image).trim()) || PLACEHOLDER_IMG;
+            var desc =
+              p.description && String(p.description).trim()
+                ? escapeHtml(p.description)
+                : "<span style=\"color:#9ca3af\">Описание не указано.</span>";
+            var price =
+              typeof p.cost === "number"
+                ? p.cost.toLocaleString("ru-RU")
+                : escapeHtml(String(p.cost));
+            return (
+              "<article class=\"product-card\">" +
+              '<img class="product-card__image" src="' +
+              escapeAttr(img) +
+              '" alt="' +
+              escapeAttr(p.name) +
+              '" loading="lazy">' +
+              '<div class="product-card__content">' +
+              '<h1 class="product-card__title">' +
+              escapeHtml(p.name) +
+              "</h1>" +
+              '<p class="product-card__price">' +
+              price +
+              " ₽</p>" +
+              '<p class="product-card__description">' +
+              desc +
+              "</p>" +
+              "</div></article>"
+            );
+          })
+          .join("");
+      })
+      .catch(function () {
+        el.innerHTML =
+          "<p style=\"color:#b91c1c\">Не удалось загрузить товары. Запустите сервер (<code>start.bat</code> или <code>node server.js</code>) и откройте страницу с <strong>http://localhost:3000/index.html</strong> или через Live Server по <strong>http://</strong> (не https).</p>";
+      });
+  }
+
+  loadCatalog();
+})();
+    </script>
+</body>
+</html>
